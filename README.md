@@ -1,73 +1,50 @@
-# React + TypeScript + Vite
+# Excel → EJS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A tiny single-page browser helper: upload a spreadsheet, pick the table range,
+write an [EJS](https://ejs.co/) template, and render it against the rows. Every
+data row becomes an `item`, the first row of the range supplies the (snake_case)
+keys, and the result is shown both as a live HTML preview and as raw HTML.
 
-Currently, two official plugins are available:
+> [!NOTE]
+> **The UI is in Georgian (ქართული).** This README is in English, but every
+> label, hint, and the built-in EJS instructions inside the app are written in
+> Georgian.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+> [!WARNING]
+> This is **not a real product** and nothing worth depending on. It's a
+> vibe-coded toy — built fast, for fun, no guarantees, no roadmap, no support.
+> Don't ship it anywhere that matters.
 
-## React Compiler
+## What it does
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Reads `.xlsx`, `.xls`, and `.csv` entirely in the browser — nothing is
+  uploaded anywhere.
+- Auto-detects the used range and lets you adjust the start/end cells (e.g.
+  `A1` → `X32`).
+- Treats the first row of the range as headers, normalized to English
+  `snake_case` keys (blank headings fall back to `col_1`, `col_2`, …).
+- Exposes a single `items` variable to your EJS template
+  (`items = [{ key: value }, …]`).
+- Shows the output as a sandboxed HTML **preview** or as raw **HTML**, with a
+  copy button.
 
-## Expanding the ESLint configuration
+## Tech
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- [React 19](https://react.dev/) + [Vite](https://vite.dev/) + TypeScript
+- [SheetJS (`xlsx`)](https://sheetjs.com/) for spreadsheet parsing
+- [EJS](https://ejs.co/) for templating (runs client-side)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Develop
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # start the dev server
+npm run build    # type-check + production build to dist/
+npm run lint     # eslint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Deploy
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Pushing to `main` builds the app and deploys it to GitHub Pages via the official
+GitHub Actions workflow (`.github/workflows/deploy.yml`). One-time setup:
+**Settings → Pages → Source: "GitHub Actions"**.
