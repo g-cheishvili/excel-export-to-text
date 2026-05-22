@@ -67,6 +67,7 @@ export interface ColumnInfo {
   key: string // snake_case key used on each item
   header: CellValue // original heading-row label
   col: number // zero-based grid column index
+  isLink?: boolean // true for the synthesized "<key>_url" hyperlink column
 }
 
 export interface BuiltItems {
@@ -84,6 +85,7 @@ export function buildItems(
   grid: CellValue[][],
   start: CellRef,
   end: CellRef,
+  links?: (string | null)[][],
 ): BuiltItems {
   const r0 = Math.min(start.row, end.row)
   const r1 = Math.max(start.row, end.row)
@@ -93,11 +95,31 @@ export function buildItems(
   const headerCells: CellValue[] = []
   for (let c = c0; c <= c1; c++) headerCells.push(grid[r0]?.[c] ?? null)
   const keys = makeKeys(headerCells)
-  const columns: ColumnInfo[] = keys.map((key, i) => ({
-    key,
-    header: headerCells[i],
-    col: c0 + i,
-  }))
+
+  // A column gets a companion "<key>_url" key if any of its data cells is a
+  // hyperlink. The url key is de-duplicated against the real column keys.
+  const taken = new Set(keys)
+  const linkKeys = keys.map((key, i) => {
+    const hasLink =
+      !!links &&
+      (() => {
+        for (let r = r0 + 1; r <= r1; r++) if (links[r]?.[c0 + i]) return true
+        return false
+      })()
+    if (!hasLink) return null
+    let name = `${key}_url`
+    while (taken.has(name)) name = `${name}_`
+    taken.add(name)
+    return name
+  })
+
+  const columns: ColumnInfo[] = []
+  keys.forEach((key, i) => {
+    columns.push({ key, header: headerCells[i], col: c0 + i })
+    if (linkKeys[i]) {
+      columns.push({ key: linkKeys[i]!, header: headerCells[i], col: c0 + i, isLink: true })
+    }
+  })
 
   const items: Record<string, CellValue>[] = []
   for (let r = r0 + 1; r <= r1; r++) {
@@ -108,6 +130,7 @@ export function buildItems(
       const v = row[c0 + i] ?? null
       if (v !== null && v !== '') hasValue = true
       obj[key] = v
+      if (linkKeys[i]) obj[linkKeys[i]!] = links?.[r]?.[c0 + i] ?? null
     })
     if (hasValue) items.push(obj)
   }

@@ -116,6 +116,12 @@ textarea:focus {
 .meta .keys {
   font-family: var(--mono);
   font-size: 12px;
+  color: var(--text-h);
+}
+
+.key-readable {
+  font-family: var(--sans);
+  color: var(--text);
 }
 
 .template,
@@ -209,54 +215,6 @@ textarea:focus {
   overflow-x: auto;
   color: var(--text-h);
   white-space: pre;
-}
-
-.legend {
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-top: -8px;
-}
-
-.legend-title {
-  font-size: 13px;
-  color: var(--text);
-  margin: 0 0 8px;
-}
-
-.legend-title strong {
-  color: var(--text-h);
-}
-
-.legend-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 5px;
-}
-
-.legend-list li {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.legend-list code {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.legend-eq {
-  color: var(--text);
-}
-
-.legend-src {
-  color: var(--text);
 }
 
 .generate {

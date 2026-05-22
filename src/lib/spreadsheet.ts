@@ -8,24 +8,30 @@ import type { CellValue } from './cells'
 export interface ParsedSheet {
   name: string
   grid: CellValue[][]
+  // Hyperlink targets, aligned 1:1 with `grid`. null where a cell has no link.
+  links: (string | null)[][]
 }
 
 export function parseSpreadsheet(buffer: ArrayBuffer): ParsedSheet[] {
   const wb = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true })
   return wb.SheetNames.map((name) => ({
     name,
-    grid: sheetToGrid(wb.Sheets[name]),
+    ...sheetToData(wb.Sheets[name]),
   }))
 }
 
 /**
- * Convert a worksheet to a dense, A1-anchored 2D array. We force the read range
- * to start at A1 so `grid[row][col]` always matches the cell reference the user
- * types (e.g. C2), regardless of where the sheet's used range actually begins.
+ * Convert a worksheet to dense, A1-anchored 2D arrays of values and hyperlink
+ * targets. We force the read range to start at A1 so `grid[row][col]` always
+ * matches the cell reference the user types (e.g. C2), regardless of where the
+ * sheet's used range actually begins.
  */
-function sheetToGrid(ws: XLSX.WorkSheet): CellValue[][] {
+function sheetToData(ws: XLSX.WorkSheet): {
+  grid: CellValue[][]
+  links: (string | null)[][]
+} {
   const ref = ws['!ref']
-  if (!ref) return []
+  if (!ref) return { grid: [], links: [] }
   const range = XLSX.utils.decode_range(ref)
   range.s.r = 0
   range.s.c = 0
@@ -37,7 +43,21 @@ function sheetToGrid(ws: XLSX.WorkSheet): CellValue[][] {
     blankrows: true,
     range,
   })
-  return rows.map((row) => (row ?? []).map(toCellValue))
+  const grid = rows.map((row) => (row ?? []).map(toCellValue))
+
+  // Hyperlinks live on the cell object (`cell.l.Target`), not in sheet_to_json,
+  // so walk the same range by address to pull them out.
+  const links: (string | null)[][] = []
+  for (let r = 0; r <= range.e.r; r++) {
+    const linkRow: (string | null)[] = []
+    for (let c = 0; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })] as XLSX.CellObject | undefined
+      linkRow.push(cell?.l?.Target ?? null)
+    }
+    links.push(linkRow)
+  }
+
+  return { grid, links }
 }
 
 function toCellValue(value: unknown): CellValue {

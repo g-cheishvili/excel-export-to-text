@@ -1,11 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  buildItems,
-  formatCellRef,
-  indexToCol,
-  parseCellRef,
-  usedRange,
-} from './lib/cells'
+import { buildItems, formatCellRef, parseCellRef, usedRange } from './lib/cells'
 import { parseSpreadsheet, type ParsedSheet } from './lib/spreadsheet'
 import { renderTemplate } from './lib/render'
 import './App.css'
@@ -28,16 +22,16 @@ export default function App() {
   const [view, setView] = useState<'preview' | 'html'>('preview')
   const [error, setError] = useState('')
 
-  const grid = sheets[sheetIndex]?.grid ?? null
+  const sheet = sheets[sheetIndex] ?? null
 
   // გასაღებებისა და სტრიქონების ცოცხალი გადახედვა მიმდინარე დიაპაზონისთვის.
   const preview = useMemo(() => {
-    if (!grid) return null
+    if (!sheet) return null
     const start = parseCellRef(startCell)
     const end = parseCellRef(endCell)
     if (!start || !end) return null
-    return buildItems(grid, start, end)
-  }, [grid, startCell, endCell])
+    return buildItems(sheet.grid, start, end, sheet.links)
+  }, [sheet, startCell, endCell])
 
   async function onFile(file: File) {
     setError('')
@@ -141,7 +135,24 @@ export default function App() {
               <p className="meta">
                 <strong>{preview.items.length}</strong> სტრიქონი ·{' '}
                 <strong>{preview.keys.length}</strong> სვეტი ·{' '}
-                <span className="keys">{preview.keys.join(', ')}</span>
+                <span className="keys">
+                  {preview.columns.map((c, i) => {
+                    const readable = c.isLink
+                      ? 'ბმული'
+                      : c.header === null || c.header === ''
+                        ? ''
+                        : String(c.header)
+                    return (
+                      <span key={c.key}>
+                        {c.key}
+                        {readable && (
+                          <span className="key-readable">({readable})</span>
+                        )}
+                        {i < preview.columns.length - 1 ? ', ' : ''}
+                      </span>
+                    )
+                  })}
+                </span>
               </p>
             )}
           </>
@@ -162,7 +173,7 @@ export default function App() {
           </span>
         </label>
 
-        <details className="help" open>
+        <details className="help" open={false}>
           <summary>როგორ დავწერო EJS შაბლონი?</summary>
 
           <h3>ხელმისაწვდომი ცვლადები</h3>
@@ -174,12 +185,20 @@ export default function App() {
             </li>
             <li>
               ციკლის შიგნით <code>item</code> — მიმდინარე სტრიქონი. მნიშვნელობას
-              იღებთ <code>item.გასაღები</code>-ით (გასაღებების სია იხილეთ ქვემოთ).
+              იღებთ <code>item.გასაღები</code>-ით (გასაღებების სია გამოჩნდება
+              ზემოთ, ფაილის ატვირთვის შემდეგ).
             </li>
             <li>
               <code>items.length</code> — სტრიქონების რაოდენობა.
             </li>
+            <li>
+              თუ სვეტი ბმულს (hyperlink) შეიცავს, დამატებით ხელმისაწვდომია{' '}
+              <code>item.გასაღები_url</code> — თავად ბმულის მისამართი.
+            </li>
           </ul>
+
+          <h3>ბმული (ბმულის სვეტი)</h3>
+          <pre className="help-code">{`<a href="<%= item.website_url %>"><%= item.website %></a>`}</pre>
 
           <h3>ტეგების სახეები</h3>
           <ul>
@@ -230,30 +249,6 @@ export default function App() {
   <%= i + 1 %>. <%= item.name %><br>
 <% }); %>`}</pre>
         </details>
-
-        {preview && preview.columns.length > 0 && (
-          <div className="legend">
-            <p className="legend-title">
-              სტრიქონი <strong>{preview.headerRow}</strong> არის სათაურების
-              სტრიქონი. ქვემოთ თითოეული სტრიქონი იქცევა ერთ <code>item</code>-ად,
-              შემდეგი გასაღებებით:
-            </p>
-            <ul className="legend-list">
-              {preview.columns.map((c) => (
-                <li key={c.key}>
-                  <code>item.{c.key}</code>
-                  <span className="legend-eq">=</span>
-                  <span className="legend-src">
-                    მნიშვნელობა სვეტიდან {indexToCol(c.col)} —{' '}
-                    {c.header === null || c.header === ''
-                      ? <em>ცარიელი სათაური</em>
-                      : `„${c.header}“`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         <button className="generate" type="button" onClick={generate}>
           გენერაცია
